@@ -67,7 +67,7 @@ def create_rss():
     return rss_feed
 
 # Função principal para exibir o feed
-if __name__ == "__main__":
+if __name__ == "__app__":
     rss_feed = create_rss()
     if rss_feed:
         print(rss_feed)
