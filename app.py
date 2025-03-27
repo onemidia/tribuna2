@@ -2,6 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 from feedgen.feed import FeedGenerator
 import datetime
+from flask import Flask, Response
+
+app = Flask(__name__)
 
 # Função para pegar os artigos
 def get_articles():
@@ -66,8 +69,10 @@ def create_rss():
     
     return rss_feed
 
-# Função principal para exibir o feed
-if __name__ == "__app__":
-    rss_feed = create_rss()
-    if rss_feed:
-        print(rss_feed)
+@app.route('/rss')
+def rss_feed():
+    rss = create_rss()
+    return Response(rss, mimetype="application/rss+xml")
+
+if __name__ == "__main__":
+    app.run(debug=True)
