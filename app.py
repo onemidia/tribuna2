@@ -15,9 +15,9 @@ def get_articles():
 
     if response.status_code == 200:
         soup = BeautifulSoup(response.text, "html.parser")
-        
-        # Alterar o seletor para pegar os artigos corretamente
         articles = soup.find_all("article")
+        
+        print(f"Artigos encontrados: {len(articles)}")  # Adicionando depuração aqui
         
         article_list = []
         for article in articles[:5]:  # Pegando os 5 primeiros artigos
@@ -44,7 +44,7 @@ def create_rss():
     
     if not articles:
         print("Nenhum artigo encontrado!")
-        return
+        return "Nenhum artigo encontrado!"  # Adicionando uma mensagem mais explícita
     
     fg = FeedGenerator()
     fg.title("Tribuna Online - Notícias")
@@ -71,6 +71,7 @@ def create_rss():
 
 @app.route('/rss')
 def rss_feed():
+    print("Acessando o feed RSS...")  # Adicionando depuração para garantir que a rota foi chamada
     rss = create_rss()
     return Response(rss, mimetype="application/rss+xml")
 
