@@ -14,10 +14,16 @@ def get_articles():
     response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
+        print("Página carregada com sucesso!")  # Confirmando que a página foi carregada
         soup = BeautifulSoup(response.text, "html.parser")
+        
+        # Depuração: imprimindo parte do HTML para verificar se os artigos estão lá
+        print(soup.prettify()[:1000])  # Imprimindo os primeiros 1000 caracteres do HTML
+        
+        # Alterar o seletor para pegar os artigos corretamente
         articles = soup.find_all("article")
         
-        print(f"Artigos encontrados: {len(articles)}")  # Adicionando depuração aqui
+        print(f"Artigos encontrados: {len(articles)}")  # Número de artigos encontrados
         
         article_list = []
         for article in articles[:5]:  # Pegando os 5 primeiros artigos
