@@ -1,85 +1,63 @@
 import requests
 from bs4 import BeautifulSoup
-from feedgen.feed import FeedGenerator
-import datetime
-from flask import Flask, Response
+import feedgenerator
 
-app = Flask(__name__)
-
-# Função para pegar os artigos
-def get_articles():
-    url = "https://www.tribunaonline.net/"
-    headers = {"User-Agent": "Mozilla/5.0"}  # Para evitar bloqueios
-
+# Função para extrair as informações dos artigos
+def get_article_data(url):
+    headers = {"User-Agent": "Mozilla/5.0"}
     response = requests.get(url, headers=headers)
 
     if response.status_code == 200:
-        print("Página carregada com sucesso!")  # Confirmando que a página foi carregada
         soup = BeautifulSoup(response.text, "html.parser")
+
+        # Pegando as informações do Open Graph
+        title = soup.find("meta", property="og:title")["content"]
+        description = soup.find("meta", property="og:description")["content"]
+        image = soup.find("meta", property="og:image")["content"]
+        article_url = soup.find("meta", property="og:url")["content"]
+        published_time = soup.find("meta", property="article:published_time")["content"]
         
-        # Depuração: imprimindo parte do HTML para verificar se os artigos estão lá
-        print(soup.prettify()[:1000])  # Imprimindo os primeiros 1000 caracteres do HTML
-        
-        # Alterar o seletor para pegar os artigos corretamente
-        articles = soup.find_all("article")
-        
-        print(f"Artigos encontrados: {len(articles)}")  # Número de artigos encontrados
-        
-        article_list = []
-        for article in articles[:5]:  # Pegando os 5 primeiros artigos
-            title = article.find("h2").text if article.find("h2") else "Sem título"
-            link = article.find("a")["href"] if article.find("a") else None
-            description = article.find("p").text if article.find("p") else "Sem descrição"
-            image = article.find("img")["src"] if article.find("img") else None
-            
-            article_list.append({
-                'title': title,
-                'link': link,
-                'description': description,
-                'image': image
-            })
-        
-        return article_list
+        return {
+            "title": title,
+            "description": description,
+            "image": image,
+            "url": article_url,
+            "published_time": published_time
+        }
     else:
-        print("Erro ao acessar o site:", response.status_code)
-        return []
+        print(f"Erro ao acessar o artigo: {response.status_code}")
+        return None
 
-# Função para criar o Feed RSS
-def create_rss():
-    articles = get_articles()
+# Função para gerar o feed RSS
+def generate_rss():
+    # URL inicial do site ou da página de listagem de artigos
+    url = "https://www.tribunaonline.net/taquaritinga-recebe-premio-excelencia-educacional-por-destaque-na-alfabetizacao/"
     
-    if not articles:
-        print("Nenhum artigo encontrado!")
-        return "Nenhum artigo encontrado!"  # Adicionando uma mensagem mais explícita
-    
-    fg = FeedGenerator()
-    fg.title("Tribuna Online - Notícias")
-    fg.link(href="https://www.tribunaonline.net/")
-    fg.description("Feed RSS personalizado do Tribuna Online")
-    fg.language("pt-br")
-    fg.generator("python-feedgen")
-    fg.lastBuildDate(datetime.datetime.now())
+    # Extrair os dados do artigo
+    article_data = get_article_data(url)
 
-    # Adicionando artigos ao feed
-    for article in articles:
-        fe = fg.add_entry()
-        fe.title(article['title'])
-        fe.link(href=article['link'])
-        fe.description(article['description'])
-        
-        if article['image']:
-            fe.enclosure(url=article['image'], type="image/jpeg")
+    if article_data:
+        # Criação do feed RSS
+        feed = feedgenerator.Rss201rev2Feed(
+            title="Jornal Tribuna Taquaritinga/SP",
+            link="https://www.tribunaonline.net/",
+            description="Notícias do Jornal Tribuna Taquaritinga"
+        )
 
-    # Gerar o XML do feed
-    rss_feed = fg.rss_str(pretty=True)
-    
-    return rss_feed
+        # Adicionando o artigo ao feed
+        feed.add_item(
+            title=article_data["title"],
+            link=article_data["url"],
+            description=article_data["description"],
+            pubdate=article_data["published_time"],
+            unique_id=article_data["url"]
+        )
 
-@app.route('/rss')
-def rss_feed():
-    print("Acessando o feed RSS...")  # Adicionando depuração para garantir que a rota foi chamada
-    rss = create_rss()
-    return Response(rss, mimetype="application/rss+xml")
+        # Salvando o feed em um arquivo XML
+        with open("feed.xml", "w", encoding="utf-8") as f:
+            f.write(feed.writeString("utf-8"))
 
-if __name__ == "__main__":
-    app.run(debug=True)
+        print("Feed RSS gerado com sucesso!")
+
+# Chamar a função para gerar o RSS
+generate_rss()
